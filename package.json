@@ -19,7 +19,7 @@
         "superagent-promise": "^1.1.0"
     },
     "devDependencies": {
-        "aws-sdk": "^2.168.0",        
+        "aws-sdk": "^2.168.0",
         "chai": "^4.1.2",
         "chance": "^1.0.12",
         "cheerio": "^1.0.0-rc.2",

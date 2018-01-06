@@ -1,0 +1,9 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - chmod +x build.sh
+      - ./build.sh int-test
+      - ./build.sh deploy dev
+      - ./build.sh acceptance-test
