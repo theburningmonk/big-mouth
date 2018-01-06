@@ -2,7 +2,7 @@
 
 const co = require('co');
 const Promise = require('bluebird');
-const awscred = Promise.promisifyAll(require('awscred'));
+const awscred = Promise.promisifyAll(require('../../lib/awscred'));
 
 let initialized = false;
 
