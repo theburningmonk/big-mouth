@@ -6,7 +6,7 @@ const _       = require('lodash');
 const co      = require('co');
 const Promise = require("bluebird");
 const http    = require('superagent-promise')(require('superagent'), Promise);
-const aws4    = require('aws4');
+const aws4    = require('../../lib/aws4');
 const URL     = require('url');
 const mode    = process.env.TEST_MODE;
 
