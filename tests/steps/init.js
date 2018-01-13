@@ -2,7 +2,7 @@
 
 const co = require('co');
 const Promise = require('bluebird');
-const aws4 = Promise.promisifyAll(require('../../lib/aws4'));
+const aws4 = require('../../lib/aws4');
 
 let initialized = false;
 
