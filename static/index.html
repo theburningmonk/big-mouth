@@ -107,7 +107,6 @@
       .hidden {
         display: none;
       }
-
       lable, button, input {
         display:block;
         font-family: Arial, Helvetica, sans-serif;
@@ -119,7 +118,6 @@
         border:0; 
         margin-top:25px; 
       }
-
     </style>
 
     <script>
@@ -127,49 +125,41 @@
       const COGNITO_USER_POOL_ID = '{{cognitoUserPoolId}}';
       const CLIENT_ID = '{{cognitoClientId}}';
       const SEARCH_URL = '{{& searchUrl}}';
-
+      const PLACE_ORDER_URL = '{{& placeOrderUrl}}';
       var regDialog, regForm;
       var verifyDialog;
       var regCompleteDialog;
       var signInDialog;
       var userPool, cognitoUser;
       var idToken;
-
       function toggleSignOut (enable) {
         enable === true ? $('#sign-out').show() : $('#sign-out').hide();
       }
-
       function toggleSignIn (enable) {
         enable === true ? $('#sign-in').show() : $('#sign-in').hide();
       }
-
       function toggleRegister (enable) {
         enable === true ? $('#register').show() : $('#register').hide();
       }
-
       function init() {
         AWS.config.region = AWS_REGION;
         AWSCognito.config.region = AWS_REGION;
-
         var data = { 
           UserPoolId : COGNITO_USER_POOL_ID, 
           ClientId : CLIENT_ID
         };
         userPool = new AWSCognito.CognitoIdentityServiceProvider.CognitoUserPool(data);
         cognitoUser = userPool.getCurrentUser();
-
         if (cognitoUser != null) {          
           cognitoUser.getSession(function(err, session) {
             if (err) {
                 alert(err);
                 return;
             }
-
             idToken = session.idToken.jwtToken;
             console.log('idToken: ' + idToken);
             console.log('session validity: ' + session.isValid());
           });
-
           toggleSignOut(true);
           toggleSignIn(false);
           toggleRegister(false);
@@ -179,14 +169,12 @@
           toggleRegister(true);
         }
       }
-
       function addUser() {
         var firstName = $("#first-name")[0].value;
         var lastName = $("#last-name")[0].value;
         var username = $("#username")[0].value;
         var password = $("#password")[0].value;
         var email = $("#email")[0].value;
-
         var attributeList = [
           new AWSCognito.CognitoIdentityServiceProvider.CognitoUserAttribute({ 
             Name : 'email', Value : email
@@ -198,7 +186,6 @@
             Name : 'family_name', Value : lastName
           }),
         ];
-
         userPool.signUp(username, password, attributeList, null, function(err, result){
           if (err) {
             alert(err);
@@ -206,12 +193,10 @@
           }
           cognitoUser = result.user;
           console.log('user name is ' + cognitoUser.getUsername());
-
           regDialog.dialog("close");
           verifyDialog.dialog("open");
         });
       }
-
       function confirmUser() {
         var verificationCode = $("#verification-code")[0].value;
         cognitoUser.confirmRegistration(verificationCode, true, function(err, result) {
@@ -220,16 +205,13 @@
             return;
           }
           console.log('verification call result: ' + result);
-
           verifyDialog.dialog("close");
           regCompleteDialog.dialog("open");
         });
       }
-
       function authenticateUser() {
         var username = $("#sign-in-username")[0].value;
         var password = $("#sign-in-password")[0].value;
-
         var authenticationData = {
           Username : username,
           Password : password,
@@ -240,26 +222,22 @@
           Pool : userPool
         };
         var cognitoUser = new AWSCognito.CognitoIdentityServiceProvider.CognitoUser(userData);
-
         cognitoUser.authenticateUser(authenticationDetails, {
           onSuccess: function (result) {
             console.log('access token : ' + result.getAccessToken().getJwtToken());
             /*Use the idToken for Logins Map when Federating User Pools with Cognito Identity or when passing through an Authorization Header to an API Gateway Authorizer*/
             idToken = result.idToken.jwtToken;
             console.log('idToken : ' + idToken);
-
             signInDialog.dialog("close");
             toggleRegister(false);
             toggleSignIn(false);
             toggleSignOut(true);
           },
-
           onFailure: function(err) {
             alert(err);
           }
         });
       }
-
       function signOut() {
         if (cognitoUser != null) {
           cognitoUser.signOut();
@@ -268,10 +246,8 @@
           toggleSignOut(false);
         }
       }
-
       function searchRestaurants() {
         var theme = $("#theme")[0].value;
-
         var xhr = new XMLHttpRequest();
         xhr.open('POST', SEARCH_URL, true);
         xhr.setRequestHeader("Content-Type", "application/json");
@@ -283,11 +259,10 @@
             var restaurants = JSON.parse(xhr.responseText);
             var restaurantsList = $("#restaurantsUl");
             restaurantsList.empty();
-
             for (var restaurant of restaurants) {
               restaurantsList.append(`
               <li class="restaurant">
-                <ul class="column-container">
+                <ul class="column-container" onclick='placeOrder("${restaurant.name}")'>
                     <li class="item restaurant-name">${restaurant.name}</li>
                     <li class="item restaurant-image">
                       <img src="${restaurant.image}">
@@ -296,13 +271,25 @@
               </li>
               `);
             }
-
           } else if (xhr.readyState === 4) {
             alert(xhr.responseText);
           }
         };
       }
-
+      function placeOrder(restaurantName) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', PLACE_ORDER_URL, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.setRequestHeader("Authorization", idToken);
+        xhr.send(JSON.stringify({ restaurantName }));
+        xhr.onreadystatechange = function (e) {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            alert("your order has been placed, we'll let you know once it's been accepted by the restaurant!");
+          } else if (xhr.readyState === 4) {
+            alert(xhr.responseText);
+          }
+        };
+      }
       $(document).ready(function() {
         regDialog = $("#reg-dialog-form").dialog({
           autoOpen: false,
@@ -317,7 +304,6 @@
             regForm[0].reset();
           }
         });
-
         regForm = regDialog.find("form").on("submit", function(event) {
           event.preventDefault();
           addUser();
@@ -326,7 +312,6 @@
         $("#register").on("click", function() {
           regDialog.dialog("open");
         });
-
         verifyDialog = $("#verify-dialog-form").dialog({
           autoOpen: false,
           modal: true,
@@ -340,7 +325,6 @@
             $(this).dialog("close");
           }
         });
-
         regCompleteDialog = $("#registered-message").dialog({
           autoOpen: false,
           modal: true,
@@ -350,7 +334,6 @@
             }
           }
         });
-
         signInDialog = $("#sign-in-form").dialog({
           autoOpen: false,
           modal: true,
@@ -364,18 +347,14 @@
             $(this).dialog("close");
           }
         });
-
         $("#sign-in").on("click", function() {
           signInDialog.dialog("open");
         });
-
         $("#sign-out").on("click", function() {
           signOut();
         })
-
         init();
       });
-
     </script>
   </head>
 
@@ -408,7 +387,7 @@
             <ul id="restaurantsUl" class="row-container">
               {{#restaurants}}
               <li class="restaurant">
-                <ul class="column-container">
+                <ul class="column-container" onclick='placeOrder("{{name}}")'>
                     <li class="item restaurant-name">{{name}}</li>
                     <li class="item restaurant-image">
                       <img src="{{image}}">
