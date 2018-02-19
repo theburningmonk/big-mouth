@@ -25,7 +25,7 @@ module.exports.handler = co.wrap(function* (event, context, cb) {
     let data = _.clone(order);
     data.eventType = 'restaurant_notified';
     
-    let putReq = {
+    let putRecordReq = {
       Data: JSON.stringify(data),
       PartitionKey: order.orderId,
       StreamName: streamName
