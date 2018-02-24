@@ -21,6 +21,7 @@ provider:
       Action: sns:Publish
       Resource: 
         - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification
+        - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification-retry
         - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification
 
 functions:
@@ -31,8 +32,8 @@ functions:
           path: /
           method: get
     environment:
-      restaurants_api: https://i3c5h755j0.execute-api.us-east-1.amazonaws.com/dev/restaurants
-      orders_api: https://i3c5h755j0.execute-api.us-east-1.amazonaws.com/dev/orders
+      restaurants_api: https://ksnkhvytol.execute-api.us-east-1.amazonaws.com/dev/restaurants
+      orders_api: https://ksnkhvytol.execute-api.us-east-1.amazonaws.com/dev/orders
       cognito_user_pool_id: us-east-1_DfuAwa0vB
       cognito_client_id: 1tf8pb1s1n53p7u608e7ic5ih8
 
@@ -76,7 +77,17 @@ functions:
     environment:
       order_events_stream: order-events
       restaurant_notification_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification
+      restaurant_notification_retry_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification-retry
   
+  retry-notify-restaurant:
+    handler: functions/retry-notify-restaurant.handler
+    events:
+      - sns: restaurant-notification-retry
+    environment:
+      order_events_stream: order-events
+      restaurant_notification_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification
+    onError: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification-dlq
+
   accept-order:
     handler: functions/accept-order.handler
     events:
@@ -131,6 +142,12 @@ resources:
       Properties:
         DisplayName: restaurant-notification
         TopicName: restaurant-notification
+
+    restaurantNotificationDLQTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        DisplayName: restaurant-notification-dlq
+        TopicName: restaurant-notification-dlq
 
     userNotificationTopic:
       Type: AWS::SNS::Topic
