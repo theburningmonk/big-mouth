@@ -5,6 +5,7 @@ const AWS = require('aws-sdk');
 const kinesis = new AWS.Kinesis();
 const chance = require('chance').Chance();
 const log = require('../lib/log');
+const cloudwatch = require('../lib/cloudwatch');
 const streamName = process.env.order_events_stream;
 
 module.exports.handler = co.wrap(function* (event, context, cb) {
@@ -29,7 +30,10 @@ module.exports.handler = co.wrap(function* (event, context, cb) {
     PartitionKey: orderId,
     StreamName: streamName
   };
-  yield kinesis.putRecord(putReq).promise();
+  yield cloudwatch.trackExecTime(
+    "KinesisPutRecordLatency",
+    () => kinesis.putRecord(putReq).promise()
+  );
 
   log.debug("published event to Kinesis...", { eventName: 'order_placed' });
 

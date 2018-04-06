@@ -8,6 +8,7 @@ const http = require('superagent-promise')(require('superagent'), Promise);
 const URL = require('url');
 const aws4 = require('../lib/aws4');
 const log = require('../lib/log');
+const cloudwatch = require('../lib/cloudwatch');
 const middy = require('middy');
 const sampleLogging = require('../middleware/sample-logging');
 
@@ -57,7 +58,10 @@ const handler = co.wrap(function* (event, context, callback) {
   let template = yield loadHtml();
   log.debug('loaded HTML template');
 
-  let restaurants = yield getRestaurants();
+  let restaurants = yield cloudwatch.trackExecTime(
+    "GetRestaurantsLatency",
+    () => getRestaurants()
+  );
   log.debug(`loaded ${restaurants.length} restaurants`);
 
   let dayOfWeek = days[new Date().getDay()];
@@ -72,6 +76,8 @@ const handler = co.wrap(function* (event, context, callback) {
   };
   let html = Mustache.render(template, view);
   log.debug(`generated HTML [${html.length} bytes]`);
+
+  cloudwatch.incrCount("RestaurantsReturned", restaurants.length);
 
   const response = {
     statusCode: 200,
