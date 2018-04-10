@@ -169,6 +169,37 @@ functions:
         Action: kinesis:PutRecord
         Resource: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
 
+  auto-create-api-alarms:
+    handler: functions/create-alarms.handler
+    events:
+      - cloudwatchEvent:
+          event:
+            source:
+              - aws.apigateway
+            detail-type:
+              - AWS API Call via CloudTrail
+            detail:
+              eventSource:
+                - apigateway.amazonaws.com
+              eventName:
+                - CreateDeployment
+    environment:
+      alarm_actions: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:NotifyMe
+      ok_actions: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:NotifyMe
+    iamRoleStatements:
+      - Effect: Allow
+        Action: apigateway:GET
+        Resource:
+          - arn:aws:apigateway:#{AWS::Region}::/restapis/*
+          - arn:aws:apigateway:#{AWS::Region}::/restapis/*/stages/${self:custom.stage}
+      - Effect: Allow
+        Action: apigateway:PATCH
+        Resource:
+          - arn:aws:apigateway:#{AWS::Region}::/restapis/*/stages/${self:custom.stage}
+      - Effect: Allow
+        Action: cloudwatch:PutMetricAlarm
+        Resource: "*"
+
 resources:
   Resources:
     restaurantsTable:
