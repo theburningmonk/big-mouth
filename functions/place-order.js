@@ -1,10 +1,11 @@
 'use strict';
 
-const co = require('co');
-const AWS = require('aws-sdk');
-const kinesis = new AWS.Kinesis();
-const chance = require('chance').Chance();
-const log = require('../lib/log');
+const co         = require('co');
+const AWSXray    = require('aws-xray-sdk');
+const AWS        = AWSXray.captureAWS(require('aws-sdk'));
+const kinesis    = new AWS.Kinesis();
+const chance     = require('chance').Chance();
+const log        = require('../lib/log');
 const cloudwatch = require('../lib/cloudwatch');
 const streamName = process.env.order_events_stream;
 
