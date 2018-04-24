@@ -1,16 +1,17 @@
 'use strict';
 
-const co = require("co");
-const Promise = require("bluebird");
-const fs = Promise.promisifyAll(require("fs"));
-const Mustache = require('mustache');
-const http = require('superagent-promise')(require('superagent'), Promise);
-const URL = require('url');
-const aws4 = require('../lib/aws4');
-const log = require('../lib/log');
-const cloudwatch = require('../lib/cloudwatch');
-const middy = require('middy');
+const co            = require("co");
+const Promise       = require("bluebird");
+const fs            = Promise.promisifyAll(require("fs"));
+const Mustache      = require('mustache');
+const http          = require('superagent-promise')(require('superagent'), Promise);
+const URL           = require('url');
+const aws4          = require('../lib/aws4');
+const log           = require('../lib/log');
+const cloudwatch    = require('../lib/cloudwatch');
+const middy         = require('middy');
 const sampleLogging = require('../middleware/sample-logging');
+const AWSXRay       = require('aws-xray-sdk');
 
 const awsRegion = process.env.AWS_REGION;
 const cognitoUserPoolId = process.env.cognito_user_pool_id;
@@ -47,9 +48,26 @@ function* getRestaurants() {
 
   if (opts.headers['X-Amz-Security-Token']) {
     httpReq.set('X-Amz-Security-Token', opts.headers['X-Amz-Security-Token']);
-  }
+  } 
 
-  return (yield httpReq).body;
+  return new Promise((resolve, reject) => {
+    let f = co.wrap(function*(subsegment) {
+      subsegment.addMetadata('url', restaurantsApiRoot);
+      
+      try {
+        let body = (yield httpReq).body;
+        subsegment.close();
+        resolve(body);
+      } catch (err) {
+        subsegment.close(err);
+        reject(err);
+      }
+    });
+
+    let segment = AWSXRay.getSegment();
+
+    AWSXRay.captureAsyncFunc("getting restaurant", f, segment);
+  });
 }
 
 const handler = co.wrap(function* (event, context, callback) {
