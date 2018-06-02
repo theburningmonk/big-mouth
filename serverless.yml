@@ -19,6 +19,7 @@ provider:
   runtime: nodejs6.10
   tracing: true
   environment:
+    STAGE: ${self:custom.stage}
     log_level: ${self:custom.logLevel.${self:custom.stage}, self:custom.logLevel.default}
   iamRoleStatements:
     - Effect: Allow
