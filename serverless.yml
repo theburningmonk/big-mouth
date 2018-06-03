@@ -10,7 +10,7 @@ custom:
   stage: ${opt:stage, self:provider.stage}
   logLevel:
     prod: WARN
-    default: DEBUG
+    default: INFO
   serverless-iam-roles-per-function:
     defaultInherit: true
 
