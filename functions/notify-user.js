@@ -2,19 +2,23 @@
 
 const _          = require('lodash');
 const co         = require('co');
-const getRecords = require('../lib/kinesis').getRecords;
 const AWSXray    = require('aws-xray-sdk');
 const AWS        = AWSXray.captureAWS(require('aws-sdk'));
-const kinesis    = new AWS.Kinesis();
+const kinesis    = require('../lib/kinesis');
 const sns        = new AWS.SNS();
 const streamName = process.env.order_events_stream;
 const topicArn   = process.env.user_notification_topic;
+const sampleLogging         = require('../middleware/sample-logging');
+const flushMetrics          = require('../middleware/flush-metrics');
+const captureCorrelationIds = require('../middleware/capture-correlation-ids');
 
-module.exports.handler = co.wrap(function* (event, context, cb) {
-  let records = getRecords(event);
-  let orderAccepted = records.filter(r => r.eventType === 'order_accepted');
+const handler = co.wrap(function* (event, context, cb) {
+  let events = context.parsedKinesisEvents;
+  let orderAccepted = events.filter(r => r.eventType === 'order_accepted');
 
   for (let order of orderAccepted) {
+    order.scopeToThis();
+
     let snsReq = {
       Message: JSON.stringify(order),
       TopicArn: topicArn
@@ -32,7 +36,14 @@ module.exports.handler = co.wrap(function* (event, context, cb) {
     };
     yield kinesis.putRecord(kinesisReq).promise();
     console.log(`published 'user_notified' event to Kinesis`);
+
+    order.unscope();
   }
   
   cb(null, "all done");
 });
+
+module.exports.handler = middy(handler)
+  .use(captureCorrelationIds({ sampleDebugLogRate: 0.01 }))
+  .use(sampleLogging({ sampleRate: 0.01 }))
+  .use(flushMetrics);
