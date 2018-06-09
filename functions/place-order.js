@@ -1,11 +1,12 @@
 'use strict';
 
-const co         = require('co');
-const kinesis    = require('../lib/kinesis');
-const chance     = require('chance').Chance();
-const log        = require('../lib/log');
-const cloudwatch = require('../lib/cloudwatch');
-const streamName = process.env.order_events_stream;
+const co             = require('co');
+const kinesis        = require('../lib/kinesis');
+const chance         = require('chance').Chance();
+const log            = require('../lib/log');
+const cloudwatch     = require('../lib/cloudwatch');
+const correlationIds = require('../lib/correlation-ids');
+const streamName     = process.env.order_events_stream;
 
 const middy = require('middy');
 const sampleLogging = require('../middleware/sample-logging');
@@ -20,6 +21,10 @@ const handler = co.wrap(function* (event, context, cb) {
 
   let orderId = chance.guid();
   log.debug(`placing order...`, { orderId, restaurantName, userEmail });
+
+  correlationIds.set('order-id', orderId);
+  correlationIds.set('restaurant-name', restaurantName);
+  correlationIds.set('user-email', userEmail);
 
   let data = {
     orderId,
