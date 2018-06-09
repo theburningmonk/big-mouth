@@ -1,12 +1,14 @@
 'use strict';
 
 const co         = require('co');
-const AWSXray    = require('aws-xray-sdk');
-const AWS        = AWSXray.captureAWS(require('aws-sdk'));
-const kinesis    = new AWS.Kinesis();
+const kinesis    = require('../lib/kinesis');
 const streamName = process.env.order_events_stream;
 
-module.exports.handler = co.wrap(function* (event, context, cb) {
+const middy = require('middy');
+const sampleLogging = require('../middleware/sample-logging');
+const captureCorrelationIds = require('../middleware/capture-correlation-ids');
+
+const handler = co.wrap(function* (event, context, cb) {
   let body = JSON.parse(event.body);
   let restaurantName = body.restaurantName;
   let orderId = body.orderId;
@@ -38,3 +40,7 @@ module.exports.handler = co.wrap(function* (event, context, cb) {
 
   cb(null, response);
 });
+
+module.exports.handler = middy(handler)
+  .use(captureCorrelationIds({ sampleDebugLogRate: 0.01 }))
+  .use(sampleLogging({ sampleRate: 0.01 }));
