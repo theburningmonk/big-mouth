@@ -4,7 +4,7 @@ const correlationIds = require('../lib/correlation-ids');
 const log = require('../lib/log');
 
 module.exports = (config) => {
-  let oldLogLevel = undefined;
+  let rollback = undefined;
 
   const isDebugEnabled = () => {
     const context = correlationIds.get();
@@ -18,15 +18,14 @@ module.exports = (config) => {
   return {
     before: (handler, next) => {
       if (isDebugEnabled()) {
-        oldLogLevel = process.env.log_level;
-        process.env.log_level = 'DEBUG';
+        rollback = log.enableDebug();
       }
 
       next();
     },
     after: (handler, next) => {
-      if (oldLogLevel) {
-        process.env.log_level = oldLogLevel;
+      if (rollback) {
+        rollback();
       }
 
       next();
