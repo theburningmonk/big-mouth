@@ -2,10 +2,8 @@
 
 const _          = require('lodash');
 const co         = require('co');
-const AWSXray    = require('aws-xray-sdk');
-const AWS        = AWSXray.captureAWS(require('aws-sdk'));
 const kinesis    = require('../lib/kinesis');
-const sns        = new AWS.SNS();
+const sns        = require('../lib/sns');
 const streamName = process.env.order_events_stream;
 const topicArn   = process.env.user_notification_topic;
 const sampleLogging         = require('../middleware/sample-logging');
