@@ -3,6 +3,31 @@
 const correlationIds = require('../lib/correlation-ids');
 const log = require('../lib/log');
 
+const AWS        = require('aws-sdk');
+const snsPublish = AWS.SNS.prototype.publish;
+
+function addCorrelationIds(messageAttributes) {
+  let attributes = {};
+  let context = correlationIds.get();
+  for (let key in context) {
+    attributes[key] = {
+      DataType: 'String',
+      StringValue: context[key]
+    };
+  }
+
+  // use `attribtues` as base so if the user's message attributes would override
+  // our correlation IDs
+  return Object.assign(attributes, messageAttributes || {});
+}
+
+AWS.SNS.prototype.publish = (params, cb) => {
+  const newMessageAttributes = addCorrelationIds(params.MessageAttributes);
+  params = Object.assign(params, { MessageAttributes: newMessageAttributes });
+  
+  return snsPublish(params, cb);
+}
+
 function captureHttp(headers, awsRequestId, sampleDebugLogRate) {
   if (!headers) {
    log.warn(`Request ${awsRequestId} is missing headers`);
@@ -167,7 +192,7 @@ module.exports = (config) => {
   const sampleDebugLogRate = config.sampleDebugLogRate || 0.01;
 
   return {
-    before: (handler, next) => {      
+    before: (handler, next) => {
       correlationIds.clearAll();
 
       if (isApiGatewayEvent(handler.event)) {
