@@ -33,6 +33,7 @@ let init = co.wrap(function* () {
     'restaurants_api'
   ]);
 
+  process.env.STAGE = 'dev';
   process.env.restaurants_api = params.restaurants_api;
   process.env.restaurants_table = "restaurants";
   process.env.AWS_REGION = "us-east-1";
