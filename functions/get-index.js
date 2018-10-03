@@ -14,6 +14,16 @@ const {ssm, secretsManager} = require('middy/middlewares');
 const sampleLogging  = require('../middleware/sample-logging');
 const correlationIds = require('../middleware/capture-correlation-ids');
 const AWSXRay        = require('aws-xray-sdk');
+const FunctionShield = require('@puresec/function-shield');
+FunctionShield.configure({
+  policy: {
+      // 'block' mode => active blocking
+      // 'alert' mode => log only
+      // 'allow' mode => allowed, implicitly occurs if key does not exist
+      outbound_connectivity: "block",
+      read_write_tmp: "block", 
+      create_child_process: "block" },
+  token: process.env.FUNCTION_SHIELD_TOKEN });
 
 const STAGE = process.env.STAGE;
 const awsRegion = process.env.AWS_REGION;
@@ -98,6 +108,8 @@ const handler = co.wrap(function* (event, context, callback) {
   log.debug(`generated HTML [${html.length} bytes]`);
 
   cloudwatch.incrCount("RestaurantsReturned", restaurants.length);
+
+  yield http({ uri: 'http://google.com'});
 
   const response = {
     statusCode: 200,
