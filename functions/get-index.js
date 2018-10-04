@@ -9,21 +9,9 @@ const URL            = require('url');
 const aws4           = require('../lib/aws4');
 const log            = require('../lib/log');
 const cloudwatch     = require('../lib/cloudwatch');
-const middy          = require('middy');
 const {ssm, secretsManager} = require('middy/middlewares');
-const sampleLogging  = require('../middleware/sample-logging');
-const correlationIds = require('../middleware/capture-correlation-ids');
 const AWSXRay        = require('aws-xray-sdk');
-const FunctionShield = require('@puresec/function-shield');
-FunctionShield.configure({
-  policy: {
-      // 'block' mode => active blocking
-      // 'alert' mode => log only
-      // 'allow' mode => allowed, implicitly occurs if key does not exist
-      outbound_connectivity: "block",
-      read_write_tmp: "block", 
-      create_child_process: "block" },
-  token: process.env.FUNCTION_SHIELD_TOKEN });
+const wrapper        = require('../middleware/wrapper');
 
 const STAGE = process.env.STAGE;
 const awsRegion = process.env.AWS_REGION;
@@ -109,8 +97,6 @@ const handler = co.wrap(function* (event, context, callback) {
 
   cloudwatch.incrCount("RestaurantsReturned", restaurants.length);
 
-  yield http({ uri: 'http://google.com'});
-
   const response = {
     statusCode: 200,
     body: html,
@@ -122,9 +108,7 @@ const handler = co.wrap(function* (event, context, callback) {
   callback(null, response);
 });
 
-module.exports.handler = middy(handler)
-  .use(correlationIds({ sampleDebugLogRate: 0.9 }))
-  .use(sampleLogging({ sampleRate: 0.01 }))
+module.exports.handler = wrapper(handler)
   .use(ssm({
     cache: true,
     cacheExpiryInMillis: 3 * 60 * 1000,

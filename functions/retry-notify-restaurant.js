@@ -1,11 +1,9 @@
 'use strict';
 
-const co = require('co');
-const notify = require('../lib/notify');
-const middy = require('middy');
-const captureCorrelationIds = require('../middleware/capture-correlation-ids');
-const sampleLogging = require('../middleware/sample-logging');
+const co           = require('co');
+const notify       = require('../lib/notify');
 const flushMetrics = require('../middleware/flush-metrics');
+const wrapper      = require('../middleware/wrapper');
 
 const handler = co.wrap(function* (event, context, cb) {
   let order = JSON.parse(event.Records[0].Sns.Message);
@@ -19,7 +17,5 @@ const handler = co.wrap(function* (event, context, cb) {
   }
 });
 
-module.exports.handler = middy(handler)
-  .use(captureCorrelationIds({ sampleDebugLogRate: 0.01 }))
-  .use(sampleLogging({ sampleRate: 0.01 }))
+module.exports.handler = wrapper(handler)
   .use(flushMetrics);

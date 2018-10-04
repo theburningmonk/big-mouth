@@ -1,14 +1,13 @@
 'use strict';
 
-const _          = require('lodash');
-const co         = require('co');
-const kinesis    = require('../lib/kinesis');
-const sns        = require('../lib/sns');
-const streamName = process.env.order_events_stream;
-const topicArn   = process.env.user_notification_topic;
-const sampleLogging         = require('../middleware/sample-logging');
-const flushMetrics          = require('../middleware/flush-metrics');
-const captureCorrelationIds = require('../middleware/capture-correlation-ids');
+const _            = require('lodash');
+const co           = require('co');
+const kinesis      = require('../lib/kinesis');
+const sns          = require('../lib/sns');
+const streamName   = process.env.order_events_stream;
+const topicArn     = process.env.user_notification_topic;
+const flushMetrics = require('../middleware/flush-metrics');
+const wrapper      = require('../middleware/wrapper');
 
 const handler = co.wrap(function* (event, context, cb) {
   let events = context.parsedKinesisEvents;
@@ -41,7 +40,5 @@ const handler = co.wrap(function* (event, context, cb) {
   cb(null, "all done");
 });
 
-module.exports.handler = middy(handler)
-  .use(captureCorrelationIds({ sampleDebugLogRate: 0.01 }))
-  .use(sampleLogging({ sampleRate: 0.01 }))
+module.exports.handler = wrapper(handler)
   .use(flushMetrics);

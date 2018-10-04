@@ -1,11 +1,10 @@
 'use strict';
 
-const co            = require('co');
-const AWSXray       = require('aws-xray-sdk');
-const AWS           = AWSXray.captureAWS(require('aws-sdk'));
-const dynamodb      = new AWS.DynamoDB.DocumentClient();
-const middy         = require('middy');
-const sampleLogging = require('../middleware/sample-logging');
+const co       = require('co');
+const AWSXray  = require('aws-xray-sdk');
+const AWS      = AWSXray.captureAWS(require('aws-sdk'));
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+const wrapper  = require('../middleware/wrapper');
 
 const defaultResults = process.env.defaultResults || 8;
 const tableName = process.env.restaurants_table;
@@ -33,5 +32,4 @@ const handler = co.wrap(function* (event, context, cb) {
   cb(null, response);
 });
 
-module.exports.handler = middy(handler)
-  .use(sampleLogging({ sampleRate: 0.01 }));
+module.exports.handler = wrapper(handler);
