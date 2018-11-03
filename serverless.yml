@@ -5,6 +5,7 @@ plugins:
   - serverless-sam
   - serverless-iam-roles-per-function
   - serverless-plugin-tracing
+  - serverless-plugin-canary-deployments
 
 custom:
   stage: ${opt:stage, self:provider.stage}
@@ -33,6 +34,11 @@ provider:
         - xray:PutTraceSegments
         - xray:PutTelemetryRecords
       Resource: '*'
+    - Effect: Allow
+      Action:
+        - codedeploy:*
+      Resource:
+        - '*'
 
 functions:
   get-index:
@@ -43,6 +49,9 @@ functions:
           method: get
     environment:
       async_metrics: true
+    deploymentSettings:
+      type: Linear10PercentEvery1Minute
+      alias: Live
     iamRoleStatements:
       - Effect: Allow
         Action: execute-api:Invoke
