@@ -6,6 +6,7 @@ plugins:
   - serverless-iam-roles-per-function
   - serverless-plugin-tracing
   - serverless-plugin-canary-deployments
+  - serverless-plugin-aws-alerts
 
 custom:
   stage: ${opt:stage, self:provider.stage}
@@ -15,6 +16,15 @@ custom:
     default: INFO
   serverless-iam-roles-per-function:
     defaultInherit: true
+  alerts:
+    stages:
+      - production
+      - staging
+      - dev
+    alarms:
+      - functionThrottles
+      - functionErrors
+    dashboards: false
 
 provider:
   name: aws
@@ -52,6 +62,8 @@ functions:
     deploymentSettings:
       type: Linear10PercentEvery1Minute
       alias: Live
+      alarms:
+        - GetDashindexFunctionErrorsAlarm
     iamRoleStatements:
       - Effect: Allow
         Action: execute-api:Invoke
